@@ -1,15 +1,18 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"time"
 )
 
-const (
-	HEIGHT = 30
-	WIDTH  = 30
-)
+type Config struct {
+	Height   int
+	Width    int
+	FPS      int
+	RandIter int
+}
 
 type Point struct {
 	x, y int
@@ -224,12 +227,12 @@ var patterns = []Matrix{
 	},
 }
 
-func loop(w, h int) {
+func loop(cfg *Config) {
 	rand.Seed(time.Now().UnixNano())
 
-	life := NewLife(w, h)
+	life := NewLife(cfg.Width, cfg.Height)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < cfg.RandIter; i++ {
 		for _, pattern := range patterns {
 			life.ApplyPatternToRandomPoint(pattern, 10)
 		}
@@ -244,10 +247,22 @@ func loop(w, h int) {
 			break
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Second / time.Duration(cfg.FPS))
 	}
 }
 
+func bindFlags() *Config {
+	cfg := &Config{}
+
+	flag.IntVar(&cfg.Width, "width", 10, "")
+	flag.IntVar(&cfg.Height, "height", 10, "")
+	flag.IntVar(&cfg.FPS, "fps", 10, "")
+	flag.IntVar(&cfg.RandIter, "rand-iter", 5, "")
+	flag.Parse()
+
+	return cfg
+}
+
 func main() {
-	loop(WIDTH, HEIGHT)
+	loop(bindFlags())
 }
