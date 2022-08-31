@@ -3,13 +3,17 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"math/rand"
 	"os"
+	"time"
+
+	"golang.org/x/term"
 )
 
 const (
-	HEIGHT = 10
-	WIDTH  = 10
+	HEIGHT = 25
+	WIDTH  = 25
 )
 
 type Point struct {
@@ -20,6 +24,7 @@ type Matrix [][]int
 
 type Life struct {
 	cells  [][]int
+	prevc  [][]int
 	width  int
 	height int
 	alive  int
@@ -37,7 +42,28 @@ func (l *Life) GetCells() [][]int {
 	return l.cells
 }
 
+func (l *Life) save() {
+	l.prevc = make([][]int, len(l.cells))
+	for i := 0; i < len(l.cells); i++ {
+		l.prevc[i] = make([]int, len(l.cells[i]))
+		copy(l.prevc[i], l.cells[i])
+	}
+}
+
+func (l *Life) IsPrevGenerationTheSame() bool {
+	size := len(l.cells)
+	for i := 0; i < size; i++ {
+		for j := 0; j < size; j++ {
+			if l.cells[i][j] != l.prevc[i][j] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (l *Life) Tick() int {
+	l.save()
 	l.alive = 0
 
 	var updated int
@@ -167,8 +193,8 @@ func NewLife(width, height int) *Life {
 }
 
 func printLife(life *Life) {
+	fmt.Print("\u001B[G")
 	for y := 0; y < life.GetHeight(); y++ {
-		fmt.Println()
 		for x := 0; x < life.GetWidth(); x++ {
 			chr := " "
 			if life.IsAlive(x, y) {
@@ -176,7 +202,9 @@ func printLife(life *Life) {
 			}
 			fmt.Print(chr)
 		}
+		fmt.Print("\u001B[G\n")
 	}
+	fmt.Printf("\u001B[%dD\u001B[%dA", WIDTH, HEIGHT)
 }
 
 var patterns = []Matrix{
@@ -201,28 +229,57 @@ var patterns = []Matrix{
 }
 
 func loop(w, h int) {
-	life := NewLife(w, h)
-	reader := bufio.NewReader(os.Stdin)
+	rand.Seed(time.Now().UnixNano())
 
-	for _, pattern := range patterns {
-		if ok := life.ApplyPatternToRandomPoint(pattern, 10); !ok {
-			fmt.Println("Failed to apply pattern :-(")
+	life := NewLife(w, h)
+	reader := bufio.NewReaderSize(os.Stdin, 1)
+
+	for i := 0; i < 5; i++ {
+		for _, pattern := range patterns {
+			life.ApplyPatternToRandomPoint(pattern, 10)
 		}
 	}
+
+	cmd := make(chan rune)
+	go func(cmd chan rune) {
+		for {
+			input, _, _ := reader.ReadRune()
+			cmd <- input
+		}
+	}(cmd)
+
+	quit := false
 
 	for {
 		printLife(life)
 
 		life.Tick()
 
-		if !life.IsAnybodyAlive() {
+		select {
+		case key := <-cmd:
+			switch key {
+			case 'q':
+				quit = true
+				break
+			}
+		default:
+		}
+
+		if quit || !life.IsAnybodyAlive() || life.IsPrevGenerationTheSame() {
 			break
 		}
 
-		reader.ReadString('\n')
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
 func main() {
+	state, err := term.MakeRaw(0)
+	if err != nil {
+		log.Fatal(err)
+
+	}
+	defer term.Restore(0, state)
+
 	loop(WIDTH, HEIGHT)
 }
