@@ -8,10 +8,12 @@ import (
 )
 
 type Config struct {
-	Height   int
-	Width    int
-	FPS      int
-	RandIter int
+	Height     int
+	Width      int
+	FPS        int
+	RandIter   int
+	LifeSymbol string
+	CrazyMode  bool
 }
 
 type Point struct {
@@ -190,13 +192,12 @@ func NewLife(width, height int) *Life {
 	}
 }
 
-func printLife(life *Life) {
+func printLife(life *Life, lifeSymbol string) {
 	for y := 0; y < life.GetHeight(); y++ {
 		for x := 0; x < life.GetWidth(); x++ {
 			chr := "   "
 			if life.IsAlive(x, y) {
-				chr = " . "
-				// chr = "😛"
+				chr = lifeSymbol
 			}
 			fmt.Print(chr)
 		}
@@ -238,8 +239,13 @@ func loop(cfg *Config) {
 		}
 	}
 
+	if cfg.CrazyMode {
+		// TODO: Set random emoji for each different cell or just for every tick?
+		cfg.LifeSymbol = "😛"
+	}
+
 	for {
-		printLife(life)
+		printLife(life, cfg.LifeSymbol)
 
 		life.Tick()
 
@@ -258,6 +264,8 @@ func bindFlags() *Config {
 	flag.IntVar(&cfg.Height, "height", 10, "")
 	flag.IntVar(&cfg.FPS, "fps", 10, "")
 	flag.IntVar(&cfg.RandIter, "rand-iter", 5, "")
+	flag.StringVar(&cfg.LifeSymbol, "life-symbol", " . ", "")
+	flag.BoolVar(&cfg.CrazyMode, "crazy-mode", false, "")
 	flag.Parse()
 
 	return cfg
