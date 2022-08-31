@@ -1,14 +1,9 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"log"
 	"math/rand"
-	"os"
 	"time"
-
-	"golang.org/x/term"
 )
 
 const (
@@ -193,7 +188,6 @@ func NewLife(width, height int) *Life {
 }
 
 func printLife(life *Life) {
-	fmt.Print("\u001B[G")
 	for y := 0; y < life.GetHeight(); y++ {
 		for x := 0; x < life.GetWidth(); x++ {
 			chr := " "
@@ -202,9 +196,10 @@ func printLife(life *Life) {
 			}
 			fmt.Print(chr)
 		}
-		fmt.Print("\u001B[G\n")
+		fmt.Println()
 	}
-	fmt.Printf("\u001B[%dD\u001B[%dA", WIDTH, HEIGHT)
+
+	fmt.Printf("\x1B[%dD\x1B[%dA", life.GetWidth(), life.GetHeight())
 }
 
 var patterns = []Matrix{
@@ -232,7 +227,6 @@ func loop(w, h int) {
 	rand.Seed(time.Now().UnixNano())
 
 	life := NewLife(w, h)
-	reader := bufio.NewReaderSize(os.Stdin, 1)
 
 	for i := 0; i < 5; i++ {
 		for _, pattern := range patterns {
@@ -240,32 +234,12 @@ func loop(w, h int) {
 		}
 	}
 
-	cmd := make(chan rune)
-	go func(cmd chan rune) {
-		for {
-			input, _, _ := reader.ReadRune()
-			cmd <- input
-		}
-	}(cmd)
-
-	quit := false
-
 	for {
 		printLife(life)
 
 		life.Tick()
 
-		select {
-		case key := <-cmd:
-			switch key {
-			case 'q':
-				quit = true
-				break
-			}
-		default:
-		}
-
-		if quit || !life.IsAnybodyAlive() || life.IsPrevGenerationTheSame() {
+		if !life.IsAnybodyAlive() || life.IsPrevGenerationTheSame() {
 			break
 		}
 
@@ -274,12 +248,5 @@ func loop(w, h int) {
 }
 
 func main() {
-	state, err := term.MakeRaw(0)
-	if err != nil {
-		log.Fatal(err)
-
-	}
-	defer term.Restore(0, state)
-
 	loop(WIDTH, HEIGHT)
 }

@@ -4,6 +4,3 @@
 ```shell
 ./build.sh && ./main
 ```
-
-## Keyboard
-* q - quit
