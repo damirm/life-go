@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	HEIGHT = 25
-	WIDTH  = 25
+	HEIGHT = 30
+	WIDTH  = 30
 )
 
 type Point struct {
@@ -190,9 +190,10 @@ func NewLife(width, height int) *Life {
 func printLife(life *Life) {
 	for y := 0; y < life.GetHeight(); y++ {
 		for x := 0; x < life.GetWidth(); x++ {
-			chr := " "
+			chr := "   "
 			if life.IsAlive(x, y) {
-				chr = "."
+				chr = " . "
+				// chr = "😛"
 			}
 			fmt.Print(chr)
 		}
