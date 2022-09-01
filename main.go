@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"math/rand"
+	"os"
 	"time"
 )
 
@@ -22,12 +24,31 @@ type Point struct {
 
 type Matrix [][]int
 
+// Add adds given matrix to self.
+// 0 0 0 0 0   0 1 0   0 1 0 0 0
+// 0 0 0 0 0 + 1 0 1 = 1 0 1 0 0
+// 0 0 0 0 0   0 1 0   0 1 0 0 0
+// 0 0 0 0 0           0 0 0 0 0
+func (m *Matrix) Add(other Matrix, x, y int) {
+	my := min(len(*m)-1, y+len(other)-1)
+	pi, pj := 0, 0
+	for i := y; i <= my; i++ {
+		mx := min(len((*m)[i])-1, x+len(other[pi])-1)
+		for j := x; j <= mx; j++ {
+			(*m)[i][j] = other[pi][pj]
+			pj++
+		}
+		pj, pi = 0, pi+1
+	}
+}
+
 type Life struct {
-	cells  [][]int
-	prevc  [][]int
+	cells  Matrix
+	prevc  Matrix
 	width  int
 	height int
 	alive  int
+	symbol string
 }
 
 func (l *Life) GetWidth() int {
@@ -38,12 +59,12 @@ func (l *Life) GetHeight() int {
 	return l.height
 }
 
-func (l *Life) GetCells() [][]int {
+func (l *Life) GetCells() Matrix {
 	return l.cells
 }
 
 func (l *Life) save() {
-	l.prevc = make([][]int, len(l.cells))
+	l.prevc = make(Matrix, len(l.cells))
 	for i := 0; i < len(l.cells); i++ {
 		l.prevc[i] = make([]int, len(l.cells[i]))
 		copy(l.prevc[i], l.cells[i])
@@ -139,22 +160,8 @@ func random(from, to int) int {
 	return rand.Intn(to-from) + from
 }
 
-// ApplyPattern applies given pattern matrix to cells matrix.
-// 0 0 0 0 0   0 1 0   0 1 0 0 0
-// 0 0 0 0 0 + 1 0 1 = 1 0 1 0 0
-// 0 0 0 0 0   0 1 0   0 1 0 0 0
-// 0 0 0 0 0           0 0 0 0 0
 func (l *Life) ApplyPattern(pattern Matrix, x, y int) {
-	my := min(len(l.cells)-1, y+len(pattern)-1)
-	pi, pj := 0, 0
-	for i := y; i <= my; i++ {
-		mx := min(len(l.cells[i])-1, x+len(pattern[pi])-1)
-		for j := x; j <= mx; j++ {
-			l.cells[i][j] = pattern[pi][pj]
-			pj++
-		}
-		pj, pi = 0, pi+1
-	}
+	l.cells.Add(pattern, x, y)
 }
 
 func (l *Life) canPutPatternThere(pattern Matrix, x, y int) bool {
@@ -180,8 +187,25 @@ func (l *Life) ApplyPatternToRandomPoint(pattern Matrix, maxTries int) bool {
 	return false
 }
 
-func NewLife(width, height int) *Life {
-	cells := make([][]int, height)
+func (l *Life) WriteTo(w io.Writer) (int64, error) {
+	var bs int64
+	for y := 0; y < l.GetHeight(); y++ {
+		for x := 0; x < l.GetWidth(); x++ {
+			chr := "   "
+			if l.IsAlive(x, y) {
+				chr = l.symbol
+			}
+			n, _ := fmt.Fprint(w, chr)
+			bs += int64(n)
+		}
+		n, _ := fmt.Fprintln(w)
+		bs += int64(n)
+	}
+	return bs, nil
+}
+
+func NewLife(width, height int, symbol string) *Life {
+	cells := make(Matrix, height)
 	for i := range cells {
 		cells[i] = make([]int, width)
 	}
@@ -189,22 +213,8 @@ func NewLife(width, height int) *Life {
 		cells:  cells,
 		width:  width,
 		height: height,
+		symbol: symbol,
 	}
-}
-
-func printLife(life *Life, lifeSymbol string) {
-	for y := 0; y < life.GetHeight(); y++ {
-		for x := 0; x < life.GetWidth(); x++ {
-			chr := "   "
-			if life.IsAlive(x, y) {
-				chr = lifeSymbol
-			}
-			fmt.Print(chr)
-		}
-		fmt.Println()
-	}
-
-	fmt.Printf("\x1B[%dD\x1B[%dA", life.GetWidth(), life.GetHeight())
 }
 
 var patterns = []Matrix{
@@ -231,7 +241,12 @@ var patterns = []Matrix{
 func loop(cfg *Config) {
 	rand.Seed(time.Now().UnixNano())
 
-	life := NewLife(cfg.Width, cfg.Height)
+	if cfg.CrazyMode {
+		// TODO: Set random emoji for each different cell or just for every tick?
+		cfg.LifeSymbol = "😛"
+	}
+
+	life := NewLife(cfg.Width, cfg.Height, cfg.LifeSymbol)
 
 	for i := 0; i < cfg.RandIter; i++ {
 		for _, pattern := range patterns {
@@ -239,14 +254,8 @@ func loop(cfg *Config) {
 		}
 	}
 
-	if cfg.CrazyMode {
-		// TODO: Set random emoji for each different cell or just for every tick?
-		cfg.LifeSymbol = "😛"
-	}
-
 	for {
-		printLife(life, cfg.LifeSymbol)
-
+		life.WriteTo(os.Stdin)
 		life.Tick()
 
 		if !life.IsAnybodyAlive() || life.IsPrevGenerationTheSame() {
@@ -254,6 +263,9 @@ func loop(cfg *Config) {
 		}
 
 		time.Sleep(time.Second / time.Duration(cfg.FPS))
+
+		// Return cursor back to the top left corner.
+		fmt.Printf("\x1B[%dD\x1B[%dA", life.GetWidth(), life.GetHeight())
 	}
 }
 
