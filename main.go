@@ -51,7 +51,6 @@ func (m *Matrix) Add(other Matrix, x, y int) {
 
 type Life struct {
 	cells  Matrix
-	prevc  Matrix
 	width  int
 	height int
 	alive  int
@@ -73,28 +72,7 @@ func (l *Life) GetCells() Matrix {
 	return l.cells
 }
 
-func (l *Life) save() {
-	l.prevc = make(Matrix, len(l.cells))
-	for i := 0; i < len(l.cells); i++ {
-		l.prevc[i] = make([]int, len(l.cells[i]))
-		copy(l.prevc[i], l.cells[i])
-	}
-}
-
-func (l *Life) IsPrevGenerationTheSame() bool {
-	size := len(l.cells)
-	for i := 0; i < size; i++ {
-		for j := 0; j < size; j++ {
-			if l.cells[i][j] != l.prevc[i][j] {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func (l *Life) Tick() int {
-	l.save()
 	l.alive = 0
 
 	var updated int
@@ -157,10 +135,6 @@ func (l *Life) CountAliveNeighbors(x, y int) int {
 	}
 
 	return res
-}
-
-func (l *Life) IsEnd() bool {
-	return !l.IsAnybodyAlive() || l.IsPrevGenerationTheSame()
 }
 
 func min(a, b int) int {
@@ -271,9 +245,8 @@ func start(cfg *Config) {
 
 	for {
 		life.WriteTo(os.Stdin)
-		life.Tick()
 
-		if life.IsEnd() {
+		if updated := life.Tick(); updated == 0 || !life.IsAnybodyAlive() {
 			break
 		}
 
