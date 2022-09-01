@@ -35,7 +35,7 @@ func (m *Matrix) Add(other Matrix, x, y int) {
 	for i := y; i <= my; i++ {
 		mx := min(len((*m)[i])-1, x+len(other[pi])-1)
 		for j := x; j <= mx; j++ {
-			(*m)[i][j] = other[pi][pj]
+			(*m)[i][j] += other[pi][pj]
 			pj++
 		}
 		pj, pi = 0, pi+1
