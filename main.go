@@ -15,6 +15,7 @@ type Config struct {
 	FPS        int
 	RandIter   int
 	LifeSymbol string
+	DeadSymbol string
 	CrazyMode  bool
 }
 
@@ -48,7 +49,10 @@ type Life struct {
 	width  int
 	height int
 	alive  int
-	symbol string
+	// Life char
+	lchar string
+	// Deed char
+	dchar string
 }
 
 func (l *Life) GetWidth() int {
@@ -195,9 +199,9 @@ func (l *Life) WriteTo(w io.Writer) (int64, error) {
 	var bs int64
 	for y := 0; y < l.GetHeight(); y++ {
 		for x := 0; x < l.GetWidth(); x++ {
-			chr := "   "
+			chr := l.dchar
 			if l.IsAlive(x, y) {
-				chr = l.symbol
+				chr = l.lchar
 			}
 			n, _ := fmt.Fprint(w, chr)
 			bs += int64(n)
@@ -208,16 +212,17 @@ func (l *Life) WriteTo(w io.Writer) (int64, error) {
 	return bs, nil
 }
 
-func NewLife(width, height int, symbol string) *Life {
-	cells := make(Matrix, height)
+func NewLife(cfg *Config) *Life {
+	cells := make(Matrix, cfg.Height)
 	for i := range cells {
-		cells[i] = make([]int, width)
+		cells[i] = make([]int, cfg.Width)
 	}
 	return &Life{
 		cells:  cells,
-		width:  width,
-		height: height,
-		symbol: symbol,
+		width:  cfg.Width,
+		height: cfg.Height,
+		lchar:  cfg.LifeSymbol,
+		dchar:  cfg.DeadSymbol,
 	}
 }
 
@@ -250,7 +255,7 @@ func start(cfg *Config) {
 		cfg.LifeSymbol = "😛"
 	}
 
-	life := NewLife(cfg.Width, cfg.Height, cfg.LifeSymbol)
+	life := NewLife(cfg)
 
 	for i := 0; i < cfg.RandIter; i++ {
 		for _, pattern := range patterns {
@@ -281,6 +286,7 @@ func parseFlags() *Config {
 	flag.IntVar(&cfg.FPS, "fps", 10, "")
 	flag.IntVar(&cfg.RandIter, "rand-iter", 5, "")
 	flag.StringVar(&cfg.LifeSymbol, "life-symbol", " . ", "")
+	flag.StringVar(&cfg.DeadSymbol, "dead-symbol", "   ", "")
 	flag.BoolVar(&cfg.CrazyMode, "crazy-mode", false, "")
 	flag.Parse()
 
