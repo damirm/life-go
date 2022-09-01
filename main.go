@@ -9,6 +9,12 @@ import (
 	"time"
 )
 
+const (
+	termBgWhite       = "\x1B[48;5;255m"
+	termBgReset       = "\x1B[0m"
+	termBackToTopLeft = "\x1B[%dD\x1B[%dA"
+)
+
 type Config struct {
 	Height     int
 	Width      int
@@ -201,7 +207,7 @@ func (l *Life) WriteTo(w io.Writer) (int64, error) {
 		for x := 0; x < l.GetWidth(); x++ {
 			chr := l.dchar
 			if l.IsAlive(x, y) {
-				chr = l.lchar
+				chr = termBgWhite + l.lchar + termBgReset
 			}
 			n, _ := fmt.Fprint(w, chr)
 			bs += int64(n)
@@ -274,7 +280,7 @@ func start(cfg *Config) {
 		time.Sleep(time.Second / time.Duration(cfg.FPS))
 
 		// Return cursor back to the top left corner.
-		fmt.Printf("\x1B[%dD\x1B[%dA", life.GetWidth(), life.GetHeight())
+		fmt.Printf(termBackToTopLeft, life.GetWidth(), life.GetHeight())
 	}
 }
 
@@ -285,8 +291,8 @@ func parseFlags() *Config {
 	flag.IntVar(&cfg.Height, "height", 10, "")
 	flag.IntVar(&cfg.FPS, "fps", 10, "")
 	flag.IntVar(&cfg.RandIter, "rand-iter", 5, "")
-	flag.StringVar(&cfg.LifeSymbol, "life-symbol", " . ", "")
-	flag.StringVar(&cfg.DeadSymbol, "dead-symbol", "   ", "")
+	flag.StringVar(&cfg.LifeSymbol, "life-symbol", "  ", "")
+	flag.StringVar(&cfg.DeadSymbol, "dead-symbol", "  ", "")
 	flag.BoolVar(&cfg.CrazyMode, "crazy-mode", false, "")
 	flag.Parse()
 
