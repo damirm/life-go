@@ -149,6 +149,10 @@ func (l *Life) CountAliveNeighbors(x, y int) int {
 	return res
 }
 
+func (l *Life) IsEnd() bool {
+	return !l.IsAnybodyAlive() || l.IsPrevGenerationTheSame()
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -238,7 +242,7 @@ var patterns = []Matrix{
 	},
 }
 
-func loop(cfg *Config) {
+func start(cfg *Config) {
 	rand.Seed(time.Now().UnixNano())
 
 	if cfg.CrazyMode {
@@ -258,7 +262,7 @@ func loop(cfg *Config) {
 		life.WriteTo(os.Stdin)
 		life.Tick()
 
-		if !life.IsAnybodyAlive() || life.IsPrevGenerationTheSame() {
+		if life.IsEnd() {
 			break
 		}
 
@@ -269,7 +273,7 @@ func loop(cfg *Config) {
 	}
 }
 
-func bindFlags() *Config {
+func parseFlags() *Config {
 	cfg := &Config{}
 
 	flag.IntVar(&cfg.Width, "width", 10, "")
@@ -284,5 +288,5 @@ func bindFlags() *Config {
 }
 
 func main() {
-	loop(bindFlags())
+	start(parseFlags())
 }
