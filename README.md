@@ -14,6 +14,12 @@
 | -fps       | fps rate |
 | -rand-iter | amount iterations of randomization the surface |
 
+## Keys
+
+| Key | Description |
+|-----|-------------|
+|<kbd>q</kbd>| Quit |
+
 ## Demo
 
 ![Demo](./docs/demo.gif)

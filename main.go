@@ -250,10 +250,10 @@ func start(cfg *Config) {
 			break
 		}
 
-		time.Sleep(time.Second / time.Duration(cfg.FPS))
-
 		// Return cursor back to the top left corner.
 		fmt.Printf(termBackToTopLeft, life.GetWidth(), life.GetHeight())
+
+		time.Sleep(time.Second / time.Duration(cfg.FPS))
 	}
 }
 
