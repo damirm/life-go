@@ -42,7 +42,7 @@ func TestApplyPattern(t *testing.T) {
 	}{
 		{
 			name: "simple",
-			life: NewLife(10, 10),
+			life: NewLife(parseFlags()),
 			pos:  p(1, 1),
 			pattern: [][]int{
 				{0, 1},
